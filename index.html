@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>XiD Training Tracker</title>
+<style>
+:root {
+  --bg: #F4F6FA;
+  --card: #FFFFFF;
+  --primary: #4A7DFF;
+  --primary-light: #E8EFFE;
+  --green: #22C55E;
+  --green-light: #DCFCE7;
+  --red: #EF4444;
+  --red-light: #FEE2E2;
+  --orange: #F97316;
+  --orange-light: #FFEDD5;
+  --yellow: #EAB308;
+  --yellow-light: #FEF9C3;
+  --gray: #94A3B8;
+  --gray-light: #F1F5F9;
+  --gray-mid: #CBD5E1;
+  --text: #1E293B;
+  --text-muted: #64748B;
+  --radius: 10px;
+  --shadow: 0 1px 4px rgba(0,0,0,.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+
+/* ── Layout ── */
+#app { display: flex; flex-direction: column; min-height: 100vh; }
+header { background: var(--card); border-bottom: 1px solid var(--gray-mid); padding: 0 20px; display: flex; align-items: center; gap: 16px; height: 56px; position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow); }
+.logo { font-weight: 700; font-size: 18px; color: var(--primary); letter-spacing: -.5px; white-space: nowrap; }
+.logo span { color: var(--text-muted); font-weight: 400; font-size: 13px; margin-left: 4px; }
+header .spacer { flex: 1; }
+
+/* Member Tabs */
+.member-tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.member-tabs::-webkit-scrollbar { display: none; }
+.mtab { padding: 6px 14px; border-radius: 20px; border: none; background: transparent; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text-muted); white-space: nowrap; transition: all .15s; }
+.mtab:hover { background: var(--gray-light); color: var(--text); }
+.mtab.active { background: var(--primary); color: #fff; }
+
+/* Icon Buttons */
+.icon-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--gray-mid); background: var(--card); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 18px; transition: all .15s; flex-shrink: 0; }
+.icon-btn:hover { background: var(--gray-light); color: var(--text); }
+
+/* Main Content */
+main { padding: 20px; max-width: 1100px; margin: 0 auto; width: 100%; }
+
+/* Month Navigation */
+.month-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.month-nav h2 { font-size: 20px; font-weight: 700; min-width: 180px; text-align: center; }
+.nav-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--gray-mid); background: var(--card); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.nav-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+.today-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--gray-mid); background: var(--card); cursor: pointer; font-size: 13px; font-weight: 500; transition: all .15s; }
+.today-btn:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+
+/* Calendar */
+.calendar { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.cal-header { display: grid; grid-template-columns: repeat(7, 1fr); background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); }
+.cal-header-cell { padding: 10px 0; text-align: center; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+.cal-header-cell:first-child { color: var(--red); }
+.cal-header-cell:last-child { color: var(--primary); }
+
+.cal-body { }
+.week-row { display: grid; grid-template-columns: repeat(7, 1fr) 200px; border-bottom: 1px solid var(--gray-mid); }
+.week-row:last-child { border-bottom: none; }
+.day-cell { min-height: 90px; padding: 8px; border-right: 1px solid var(--gray-mid); cursor: pointer; transition: background .1s; position: relative; display: flex; flex-direction: column; gap: 4px; }
+.day-cell:last-of-type { border-right: none; }
+.day-cell:hover { background: var(--primary-light); }
+.day-cell.other-month { background: var(--gray-light); }
+.day-cell.other-month .day-num { color: var(--gray); }
+.day-cell.today .day-num { background: var(--primary); color: #fff; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+.day-cell.holiday-day { background: #FFF8F0; }
+.day-cell.weekend { background: #FAFBFF; }
+.day-num { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1; margin-bottom: 2px; }
+.day-num-wrap { display: flex; align-items: center; gap: 6px; }
+.sunday .day-num { color: var(--red); }
+.saturday .day-num { color: var(--primary); }
+
+/* Badges */
+.badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; cursor: default; }
+.badge-training { background: var(--primary-light); color: var(--primary); }
+.badge-leave { background: var(--orange-light); color: var(--orange); }
+.badge-late { background: var(--red-light); color: var(--red); }
+.badge-holiday { background: var(--yellow-light); color: #92400E; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: block; }
+.holiday-label { font-size: 10px; color: #92400E; background: var(--yellow-light); border-radius: 4px; padding: 1px 5px; margin-top: 2px; line-height: 1.4; }
+
+/* Week Summary Column */
+.week-summary { padding: 10px 12px; border-left: 2px solid var(--gray-mid); display: flex; flex-direction: column; gap: 6px; justify-content: center; min-width: 200px; }
+.ws-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+.ws-status { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; }
+.ws-status.ok { color: var(--green); }
+.ws-status.no { color: var(--red); }
+.ws-reason { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+.ws-late { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.ws-late-bar { flex: 1; height: 5px; background: var(--gray-mid); border-radius: 10px; overflow: hidden; }
+.ws-late-fill { height: 100%; border-radius: 10px; transition: width .3s; }
+.ws-late-fill.ok { background: var(--green); }
+.ws-late-fill.warn { background: var(--yellow); }
+.ws-late-fill.over { background: var(--red); }
+.ws-late-num { font-weight: 600; min-width: 40px; text-align: right; }
+.ws-late-num.over { color: var(--red); }
+
+/* Legends */
+.legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+/* ── Modal ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal { background: var(--card); border-radius: 14px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-md); }
+.modal-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--gray-mid); display: flex; align-items: center; justify-content: space-between; }
+.modal-header h3 { font-size: 16px; font-weight: 700; }
+.close-btn { width: 30px; height: 30px; border-radius: 6px; border: none; background: var(--gray-light); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
+.close-btn:hover { background: var(--gray-mid); }
+.modal-body { padding: 20px 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--gray-mid); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Record tabs in modal */
+.rec-tabs { display: flex; gap: 4px; margin-bottom: 16px; background: var(--gray-light); border-radius: 8px; padding: 4px; }
+.rec-tab { flex: 1; padding: 7px 0; border-radius: 6px; border: none; background: transparent; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text-muted); transition: all .15s; }
+.rec-tab.active { background: var(--card); color: var(--primary); font-weight: 600; box-shadow: var(--shadow); }
+
+/* Existing records list */
+.rec-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.rec-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--gray-light); border-radius: 8px; }
+.rec-item-info { flex: 1; }
+.rec-item-title { font-weight: 600; font-size: 13px; }
+.rec-item-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.rec-item-actions { display: flex; gap: 4px; }
+.rec-edit-btn, .rec-del-btn { width: 28px; height: 28px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.rec-edit-btn { background: var(--primary-light); color: var(--primary); }
+.rec-edit-btn:hover { background: var(--primary); color: #fff; }
+.rec-del-btn { background: var(--red-light); color: var(--red); }
+.rec-del-btn:hover { background: var(--red); color: #fff; }
+
+/* Forms */
+.form-group { margin-bottom: 14px; }
+label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .5px; }
+input, select, textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--gray-mid); border-radius: 8px; font-size: 14px; font-family: inherit; background: var(--card); color: var(--text); transition: border-color .15s; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+.radio-group { display: flex; gap: 10px; }
+.radio-option { flex: 1; display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 2px solid var(--gray-mid); border-radius: 8px; cursor: pointer; transition: all .15s; }
+.radio-option:has(input:checked) { border-color: var(--primary); background: var(--primary-light); }
+.radio-option input { width: auto; }
+.info-box { background: var(--yellow-light); border: 1px solid #FDE68A; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #92400E; margin-bottom: 14px; line-height: 1.5; }
+.info-box.blue { background: var(--primary-light); border-color: #BFDBFE; color: #1E40AF; }
+.info-box.red { background: var(--red-light); border-color: #FECACA; color: #991B1B; }
+
+/* Buttons */
+.btn { padding: 9px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: all .15s; display: inline-flex; align-items: center; gap: 6px; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: #3B6FEE; }
+.btn-secondary { background: var(--gray-light); color: var(--text); border: 1px solid var(--gray-mid); }
+.btn-secondary:hover { background: var(--gray-mid); }
+.btn-danger { background: var(--red); color: #fff; }
+.btn-danger:hover { background: #DC2626; }
+.btn-success { background: var(--green); color: #fff; }
+.btn-success:hover { background: #16A34A; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Settings Modal */
+.settings-modal { max-width: 560px; }
+.settings-section { margin-bottom: 24px; }
+.settings-section h4 { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.member-list { display: flex; flex-direction: column; gap: 8px; }
+.member-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--gray-light); border-radius: 8px; }
+.member-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.member-name-input { flex: 1; padding: 6px 10px; border: 1px solid var(--gray-mid); border-radius: 6px; font-size: 13px; }
+.toggle-switch { position: relative; width: 38px; height: 22px; flex-shrink: 0; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; inset: 0; background: var(--gray-mid); border-radius: 22px; cursor: pointer; transition: .2s; }
+.slider:before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+input:checked + .slider { background: var(--green); }
+input:checked + .slider:before { transform: translateX(16px); }
+.holiday-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--gray-mid); }
+.holiday-row:last-child { border-bottom: none; }
+.holiday-date { font-size: 12px; color: var(--text-muted); min-width: 90px; }
+.holiday-name { flex: 1; font-size: 13px; }
+.holiday-del { color: var(--red); border: none; background: none; cursor: pointer; font-size: 16px; padding: 2px 6px; }
+
+/* Loading overlay */
+#loading { position: fixed; inset: 0; background: rgba(255,255,255,.85); z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; font-size: 15px; font-weight: 500; color: var(--text-muted); }
+.spinner { width: 36px; height: 36px; border: 3px solid var(--gray-mid); border-top-color: var(--primary); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.hidden { display: none !important; }
+
+/* Toast */
+#toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1E293B; color: #fff; padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 500; z-index: 300; opacity: 0; transition: opacity .3s; pointer-events: none; }
+#toast.show { opacity: 1; }
+
+@media (max-width: 768px) {
+  .week-row { grid-template-columns: repeat(7, 1fr); }
+  .week-summary { display: none; }
+  main { padding: 12px; }
+  header { padding: 0 12px; gap: 8px; }
+  .logo span { display: none; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">🏠 XiD <span>Training Tracker</span></div>
+    <div class="member-tabs" id="memberTabs"></div>
+    <div class="spacer"></div>
+    <button class="icon-btn" onclick="openSettings()" title="Settings">⚙️</button>
+  </header>
+  <main>
+    <div class="month-nav">
+      <button class="nav-btn" onclick="changeMonth(-1)">&#8249;</button>
+      <h2 id="monthTitle"></h2>
+      <button class="nav-btn" onclick="changeMonth(1)">&#8250;</button>
+      <button class="today-btn" onclick="goToday()">วันนี้</button>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--primary)"></div> Training</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div> วันลา</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div> มาสาย</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div> วันหยุดราชการ</div>
+    </div>
+    <div class="calendar" id="calendar"></div>
+  </main>
+</div>
+
+<div id="loading"><div class="spinner"></div><span>กำลังโหลดข้อมูล…</span></div>
+<div id="toast"></div>
+
+<!-- Record Modal -->
+<div class="modal-overlay hidden" id="recModal" onclick="closeRecModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="recModalTitle">บันทึกวัน</h3>
+      <button class="close-btn" onclick="closeRecModal()">✕</button>
+    </div>
+    <div class="modal-body" id="recModalBody"></div>
+    <div class="modal-footer" id="recModalFooter"></div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay hidden" id="settingsModal" onclick="closeSettings(event)">
+  <div class="modal settings-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>⚙️ ตั้งค่า</h3>
+      <button class="close-btn" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="modal-body" id="settingsBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeSettings()">ปิด</button>
+      <button class="btn btn-primary" onclick="saveSettings()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+const S = {
+  members: [],
+  allMembers: [],
+  training: [],
+  leave: [],
+  late: [],
+  holidays: [],
+  currentMemberId: null,
+  currentDate: new Date(),
+  editingRecord: null,   // { type, id } for edit mode
+};
+
+const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+  'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const DAYS_TH = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+
+// ═══════════════════════════════════════════════════════════
+//  DATE HELPERS
+// ═══════════════════════════════════════════════════════════
+const fmt = d => {
+  if (!d) return '';
+  const dt = typeof d === 'string' ? new Date(d + 'T00:00:00') : d;
+  return dt.toISOString().split('T')[0];
+};
+
+function weekStart(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay(); // 0=Sun
+  const diff = day === 0 ? -6 : 1 - day;
+  const mon = new Date(d);
+  mon.setDate(d.getDate() + diff);
+  return fmt(mon);
+}
+
+function weekDates(monStr) {
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monStr + 'T00:00:00');
+    d.setDate(d.getDate() + i);
+    dates.push(fmt(d));
+  }
+  return dates;
+}
+
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return fmt(d);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RULES ENGINE
+// ═══════════════════════════════════════════════════════════
+function calcWeekStatus(memberId, monStr) {
+  const wd = weekDates(monStr);
+  const mid = String(memberId);
+
+  const holidays = wd.filter(d => S.holidays.some(h => h.date === d));
+  const leaves = S.leave.filter(l => String(l.memberId) === mid && wd.includes(l.date));
+  const lateRecs = S.late.filter(l => String(l.memberId) === mid && wd.includes(l.date));
+  const totalLate = lateRecs.reduce((s, l) => s + Number(l.minutes || 0), 0);
+
+  // check carry-over from PREVIOUS week
+  const prevMon = addDays(monStr, -7);
+  const prevWd = weekDates(prevMon);
+  const prevLeaveCarry = S.leave.filter(l =>
+    String(l.memberId) === mid && prevWd.includes(l.date) &&
+    String(l.carriedOver).toUpperCase() === 'TRUE'
+  );
+
+  // check late suspension from PREVIOUS week
+  const prevLate = S.late.filter(l => String(l.memberId) === mid && prevWd.includes(l.date));
+  const prevLateTotal = prevLate.reduce((s, l) => s + Number(l.minutes || 0), 0);
+
+  let canTrain = true, reason = null;
+
+  if (prevLeaveCarry.length > 0) {
+    canTrain = false; reason = 'ยกยอดงดเทรนจากอาทิตย์ก่อน';
+  } else if (prevLateTotal > 32) {
+    canTrain = false; reason = `มาสายเกิน 32 นาที (${prevLateTotal} นาที) อาทิตย์ก่อน`;
+  } else if (holidays.length > 0) {
+    canTrain = false; reason = 'มีวันหยุดราชการในสัปดาห์นี้';
+  } else if (leaves.some(l => l.type === 'full_day')) {
+    canTrain = false; reason = 'ลาเต็มวัน';
+  } else if (leaves.some(l => l.type === 'half_day')) {
+    canTrain = false; reason = 'ลาครึ่งวัน';
+  } else if (totalLate > 32) {
+    canTrain = false; reason = `มาสายรวม ${totalLate} นาที (เกิน 32)`;
+  }
+
+  return { canTrain, reason, totalLate, lateOver: totalLate > 32, holidays };
+}
+
+function wasTrainedThisWeek(memberId, monStr) {
+  const wd = weekDates(monStr);
+  return S.training.some(t =>
+    String(t.memberId) === String(memberId) &&
+    wd.includes(t.date) &&
+    t.status === 'confirmed'
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════
+function renderAll() {
+  renderMemberTabs();
+  renderCalendar();
+}
+
+function renderMemberTabs() {
+  const el = document.getElementById('memberTabs');
+  el.innerHTML = S.members.map(m =>
+    `<button class="mtab ${String(m.id) === String(S.currentMemberId) ? 'active' : ''}"
+      onclick="selectMember('${m.id}')">${m.name}</button>`
+  ).join('');
+}
+
+function renderCalendar() {
+  const el = document.getElementById('calendar');
+  const year = S.currentDate.getFullYear();
+  const month = S.currentDate.getMonth();
+
+  document.getElementById('monthTitle').textContent =
+    `${THAI_MONTHS[month]} ${year + 543}`;
+
+  // Build calendar grid (Mon–Sun weeks)
+  const firstDay = new Date(year, month, 1);
+  const lastDay  = new Date(year, month + 1, 0);
+
+  // Find Monday of the week containing firstDay
+  let start = new Date(firstDay);
+  const dow = start.getDay();
+  start.setDate(start.getDate() - (dow === 0 ? 6 : dow - 1));
+
+  // Find Sunday of the week containing lastDay
+  let end = new Date(lastDay);
+  const edow = end.getDay();
+  if (edow !== 0) end.setDate(end.getDate() + (7 - edow));
+
+  const today = fmt(new Date());
+  let html = `<div class="cal-header">`;
+  DAYS_TH.forEach(d => { html += `<div class="cal-header-cell">${d}</div>`; });
+  html += `</div><div class="cal-body">`;
+
+  let cur = new Date(start);
+  while (cur <= end) {
+    const monStr = fmt(cur);
+    const wd = weekDates(monStr);
+    const ws = S.currentMemberId ? calcWeekStatus(S.currentMemberId, monStr) : null;
+
+    html += `<div class="week-row">`;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(cur);
+      d.setDate(cur.getDate() + i);
+      const ds = fmt(d);
+      const isThisMonth = d.getMonth() === month;
+      const isToday = ds === today;
+      const isSun = d.getDay() === 0;
+      const isSat = d.getDay() === 6;
+      const holiday = S.holidays.find(h => h.date === ds);
+
+      let cls = 'day-cell';
+      if (!isThisMonth) cls += ' other-month';
+      if (isToday) cls += ' today';
+      if (holiday) cls += ' holiday-day';
+      if (isSun) cls += ' sunday';
+      if (isSat) cls += ' saturday';
+
+      html += `<div class="${cls}" onclick="openDayModal('${ds}')">`;
+      html += `<div class="day-num-wrap"><span class="day-num">${d.getDate()}</span></div>`;
+
+      if (holiday) {
+        html += `<div class="holiday-label" title="${holiday.name}">${holiday.name}</div>`;
+      }
+
+      if (S.currentMemberId && isThisMonth) {
+        const mid = S.currentMemberId;
+        // Training badges
+        S.training.filter(t => String(t.memberId) === String(mid) && t.date === ds)
+          .forEach(t => {
+            const icon = t.status === 'confirmed' ? '🏠' : '🚫';
+            html += `<span class="badge badge-training">${icon} ${t.status === 'confirmed' ? 'Training' : 'งดเทรน'}</span>`;
+          });
+        // Leave badges
+        S.leave.filter(l => String(l.memberId) === String(mid) && l.date === ds)
+          .forEach(l => {
+            const label = l.type === 'full_day' ? '🌴 ลาเต็มวัน' : '🌤 ลาครึ่งวัน';
+            const carry = String(l.carriedOver).toUpperCase() === 'TRUE' ? ' ⏭' : '';
+            html += `<span class="badge badge-leave">${label}${carry}</span>`;
+          });
+        // Late badges
+        S.late.filter(l => String(l.memberId) === String(mid) && l.date === ds)
+          .forEach(l => {
+            html += `<span class="badge badge-late">⏰ ${l.minutes} นาที</span>`;
+          });
+      }
+
+      html += `</div>`;
+    }
+
+    // Week summary
+    html += `<div class="week-summary">`;
+    if (ws) {
+      html += `<div class="ws-title">สัปดาห์นี้</div>`;
+      if (ws.canTrain) {
+        html += `<div class="ws-status ok">✅ เทรนได้</div>`;
+      } else {
+        html += `<div class="ws-status no">❌ งดเทรน</div>`;
+        if (ws.reason) html += `<div class="ws-reason">${ws.reason}</div>`;
+      }
+
+      const lateMax = 32;
+      const latePct = Math.min(100, (ws.totalLate / lateMax) * 100);
+      const lateCls = ws.totalLate === 0 ? 'ok' : ws.totalLate > lateMax ? 'over' : 'warn';
+      html += `<div class="ws-late">
+        <span style="font-size:11px;color:var(--text-muted)">สาย</span>
+        <div class="ws-late-bar"><div class="ws-late-fill ${lateCls}" style="width:${latePct}%"></div></div>
+        <span class="ws-late-num ${ws.lateOver ? 'over' : ''}">${ws.totalLate}/32</span>
+      </div>`;
+    } else {
+      html += `<div style="font-size:11px;color:var(--text-muted);text-align:center">เลือกสมาชิก<br>เพื่อดูสถานะ</div>`;
+    }
+    html += `</div>`;
+
+    html += `</div>`;
+    cur.setDate(cur.getDate() + 7);
+  }
+
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DAY MODAL
+// ═══════════════════════════════════════════════════════════
+let modalState = { date: null, tab: 'training', editRec: null };
+
+function openDayModal(dateStr) {
+  if (!S.currentMemberId) {
+    showToast('กรุณาเลือกสมาชิกก่อน');
+    return;
+  }
+  modalState = { date: dateStr, tab: 'training', editRec: null };
+  renderRecModal();
+  document.getElementById('recModal').classList.remove('hidden');
+}
+
+function closeRecModal(e) {
+  if (!e || e.target === document.getElementById('recModal')) {
+    document.getElementById('recModal').classList.add('hidden');
+    modalState.editRec = null;
+  }
+}
+
+function switchRecTab(tab) {
+  modalState.tab = tab;
+  modalState.editRec = null;
+  renderRecModal();
+}
+
+function renderRecModal() {
+  const { date, tab, editRec } = modalState;
+  const mid = S.currentMemberId;
+  const member = S.members.find(m => String(m.id) === String(mid));
+  const monStr = weekStart(date);
+  const ws = calcWeekStatus(mid, monStr);
+  const trained = wasTrainedThisWeek(mid, monStr);
+
+  document.getElementById('recModalTitle').textContent =
+    `${member?.name || ''} — ${formatDateThai(date)}`;
+
+  let body = `
+    <div class="rec-tabs">
+      <button class="rec-tab ${tab==='training'?'active':''}" onclick="switchRecTab('training')">🏠 Training</button>
+      <button class="rec-tab ${tab==='leave'?'active':''}" onclick="switchRecTab('leave')">🌴 วันลา</button>
+      <button class="rec-tab ${tab==='late'?'active':''}" onclick="switchRecTab('late')">⏰ มาสาย</button>
+    </div>`;
+
+  if (tab === 'training') {
+    const recs = S.training.filter(t => String(t.memberId) === String(mid) && t.date === date);
+    if (recs.length) {
+      body += `<div class="rec-list">`;
+      recs.forEach(r => {
+        const statusLabel = r.status === 'confirmed' ? '✅ Confirmed' : '❌ Cancelled';
+        body += `<div class="rec-item">
+          <div class="rec-item-info">
+            <div class="rec-item-title">${statusLabel}</div>
+            ${r.note ? `<div class="rec-item-sub">${r.note}</div>` : ''}
+          </div>
+          <div class="rec-item-actions">
+            <button class="rec-edit-btn" onclick="editRec('training','${r.id}')">✏️</button>
+            <button class="rec-del-btn" onclick="delRec('training','${r.id}')">🗑</button>
+          </div>
+        </div>`;
+      });
+      body += `</div>`;
+    }
+
+    if (!ws.canTrain && !editRec) {
+      body += `<div class="info-box red">⚠️ สัปดาห์นี้ <strong>งดเทรน</strong> — ${ws.reason}</div>`;
+    }
+
+    if (editRec && editRec.type === 'training') {
+      const r = S.training.find(t => t.id === editRec.id);
+      body += `<div class="form-group">
+        <label>สถานะ</label>
+        <select id="f_train_status">
+          <option value="confirmed" ${r?.status==='confirmed'?'selected':''}>✅ Confirmed</option>
+          <option value="cancelled" ${r?.status==='cancelled'?'selected':''}>❌ Cancelled</option>
+        </select>
+      </div>
+      <div class="form-group"><label>หมายเหตุ</label>
+        <input type="text" id="f_train_note" value="${r?.note||''}" placeholder="(ไม่บังคับ)">
+      </div>`;
+    } else {
+      body += `<div class="form-group"><label>หมายเหตุ (ไม่บังคับ)</label>
+        <input type="text" id="f_train_note" placeholder="">
+      </div>`;
+    }
+
+  } else if (tab === 'leave') {
+    const recs = S.leave.filter(l => String(l.memberId) === String(mid) && l.date === date);
+    if (recs.length) {
+      body += `<div class="rec-list">`;
+      recs.forEach(r => {
+        const typeLabel = r.type === 'full_day' ? '🌴 เต็มวัน' : '🌤 ครึ่งวัน';
+        const carry = String(r.carriedOver).toUpperCase() === 'TRUE' ? ' ⏭ ยกยอด' : '';
+        body += `<div class="rec-item">
+          <div class="rec-item-info">
+            <div class="rec-item-title">${typeLabel}${carry}</div>
+            ${r.note ? `<div class="rec-item-sub">${r.note}</div>` : ''}
+          </div>
+          <div class="rec-item-actions">
+            <button class="rec-edit-btn" onclick="editRec('leave','${r.id}')">✏️</button>
+            <button class="rec-del-btn" onclick="delRec('leave','${r.id}')">🗑</button>
+          </div>
+        </div>`;
+      });
+      body += `</div>`;
+    }
+
+    if (editRec && editRec.type === 'leave') {
+      const r = S.leave.find(l => l.id === editRec.id);
+      body += buildLeaveForm(r?.type || 'full_day', r?.note || '', String(r?.carriedOver||'').toUpperCase()==='TRUE', trained);
+    } else {
+      if (trained) {
+        body += `<div class="info-box">⚠️ มีการ Training ไปแล้วในสัปดาห์นี้ ถ้าเพิ่มวันลา สามารถ <strong>ยกยอดงดเทรนไปอาทิตย์ถัดไป</strong> ได้</div>`;
+      }
+      body += buildLeaveForm('full_day', '', false, trained);
+    }
+
+  } else if (tab === 'late') {
+    const recs = S.late.filter(l => String(l.memberId) === String(mid) && l.date === date);
+    if (recs.length) {
+      body += `<div class="rec-list">`;
+      recs.forEach(r => {
+        body += `<div class="rec-item">
+          <div class="rec-item-info">
+            <div class="rec-item-title">⏰ มาสาย ${r.minutes} นาที</div>
+          </div>
+          <div class="rec-item-actions">
+            <button class="rec-edit-btn" onclick="editRec('late','${r.id}')">✏️</button>
+            <button class="rec-del-btn" onclick="delRec('late','${r.id}')">🗑</button>
+          </div>
+        </div>`;
+      });
+      body += `</div>`;
+    }
+
+    const totalThisWeek = S.late.filter(l => String(l.memberId)===String(mid) && weekDates(monStr).includes(l.date))
+      .reduce((s,l)=>s+Number(l.minutes||0),0);
+    if (totalThisWeek > 0) {
+      const cls = totalThisWeek > 32 ? 'red' : 'blue';
+      body += `<div class="info-box ${cls}">สัปดาห์นี้มาสายรวม <strong>${totalThisWeek} นาที</strong> ${totalThisWeek>32?'— เกิน 32 นาที ⚠️ งดเทรน':'/ 32 นาที'}</div>`;
+    }
+
+    if (editRec && editRec.type === 'late') {
+      const r = S.late.find(l => l.id === editRec.id);
+      body += `<div class="form-group"><label>จำนวนนาทีที่สาย</label>
+        <input type="number" id="f_late_min" min="1" max="480" value="${r?.minutes||''}" placeholder="เช่น 15">
+      </div>`;
+    } else {
+      body += `<div class="form-group"><label>จำนวนนาทีที่สาย</label>
+        <input type="number" id="f_late_min" min="1" max="480" placeholder="เช่น 15">
+      </div>`;
+    }
+  }
+
+  document.getElementById('recModalBody').innerHTML = body;
+  document.getElementById('recModalFooter').innerHTML = buildModalFooter(tab, editRec);
+}
+
+function buildLeaveForm(type, note, carriedOver, showCarry) {
+  return `<div class="form-group"><label>ประเภทการลา</label>
+    <div class="radio-group">
+      <label class="radio-option"><input type="radio" name="leave_type" value="full_day" ${type==='full_day'?'checked':''} onchange="renderRecModal()"> เต็มวัน</label>
+      <label class="radio-option"><input type="radio" name="leave_type" value="half_day" ${type==='half_day'?'checked':''} onchange="renderRecModal()"> ครึ่งวัน</label>
+    </div>
+  </div>
+  <div class="form-group"><label>หมายเหตุ (ไม่บังคับ)</label>
+    <input type="text" id="f_leave_note" value="${note}" placeholder="">
+  </div>
+  ${showCarry ? `<div class="form-group">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;letter-spacing:0;">
+      <input type="checkbox" id="f_leave_carry" ${carriedOver?'checked':''} style="width:auto">
+      <span>⏭ ยกยอดงดเทรนไปอาทิตย์ถัดไป (Training ทำไปแล้วอาทิตย์นี้)</span>
+    </label>
+  </div>` : ''}`;
+}
+
+function buildModalFooter(tab, editRec) {
+  const saveLabel = editRec ? '💾 อัปเดต' : '➕ บันทึก';
+  let saveFn = '';
+  if (tab === 'training') saveFn = editRec ? `updateTrainingRec('${editRec.id}')` : `saveTraining()`;
+  else if (tab === 'leave')   saveFn = editRec ? `updateLeaveRec('${editRec.id}')` : `saveLeave()`;
+  else if (tab === 'late')    saveFn = editRec ? `updateLateRec('${editRec.id}')` : `saveLate()`;
+
+  return `<button class="btn btn-secondary" onclick="closeRecModal()">${editRec?'ยกเลิก':'ปิด'}</button>
+    <button class="btn btn-primary" onclick="${saveFn}">${saveLabel}</button>`;
+}
+
+function editRec(type, id) {
+  modalState.editRec = { type, id };
+  modalState.tab = type === 'training' ? 'training' : type === 'leave' ? 'leave' : 'late';
+  renderRecModal();
+}
+
+function delRec(type, id) {
+  if (!confirm('ลบรายการนี้?')) return;
+  let fn = null;
+  if (type === 'training') fn = () => { S.training = S.training.filter(t => t.id !== id); callServer('deleteTraining', id); };
+  else if (type === 'leave') fn = () => { S.leave = S.leave.filter(l => l.id !== id); callServer('deleteLeave', id); };
+  else fn = () => { S.late = S.late.filter(l => l.id !== id); callServer('deleteLate', id); };
+  fn(); renderRecModal(); renderCalendar();
+}
+
+// ─ Save helpers ─
+function saveTraining() {
+  const status = 'confirmed';
+  const note = document.getElementById('f_train_note')?.value || '';
+  const id = 'tmp_' + Date.now();
+  S.training.push({ id, memberId: S.currentMemberId, date: modalState.date, status, note });
+  callServer('addTraining', S.currentMemberId, modalState.date, status, note);
+  renderRecModal(); renderCalendar();
+  showToast('บันทึก Training แล้ว ✅');
+}
+
+function updateTrainingRec(id) {
+  const status = document.getElementById('f_train_status')?.value || 'confirmed';
+  const note = document.getElementById('f_train_note')?.value || '';
+  const idx = S.training.findIndex(t => t.id === id);
+  if (idx >= 0) { S.training[idx].status = status; S.training[idx].note = note; }
+  callServer('updateTraining', id, null, status, note);
+  modalState.editRec = null; renderRecModal(); renderCalendar();
+  showToast('อัปเดต Training แล้ว ✅');
+}
+
+function saveLeave() {
+  const type = document.querySelector('input[name="leave_type"]:checked')?.value || 'full_day';
+  const note = document.getElementById('f_leave_note')?.value || '';
+  const carriedOver = document.getElementById('f_leave_carry')?.checked || false;
+  const id = 'tmp_' + Date.now();
+  S.leave.push({ id, memberId: S.currentMemberId, date: modalState.date, type, note, carriedOver: carriedOver?'TRUE':'FALSE' });
+  callServer('addLeave', S.currentMemberId, modalState.date, type, note, carriedOver);
+  renderRecModal(); renderCalendar();
+  showToast('บันทึกวันลาแล้ว 🌴');
+}
+
+function updateLeaveRec(id) {
+  const type = document.querySelector('input[name="leave_type"]:checked')?.value || 'full_day';
+  const note = document.getElementById('f_leave_note')?.value || '';
+  const carriedOver = document.getElementById('f_leave_carry')?.checked || false;
+  const idx = S.leave.findIndex(l => l.id === id);
+  if (idx >= 0) { S.leave[idx].type = type; S.leave[idx].note = note; S.leave[idx].carriedOver = carriedOver?'TRUE':'FALSE'; }
+  callServer('updateLeave', id, null, type, note, carriedOver);
+  modalState.editRec = null; renderRecModal(); renderCalendar();
+  showToast('อัปเดตวันลาแล้ว ✅');
+}
+
+function saveLate() {
+  const min = parseInt(document.getElementById('f_late_min')?.value);
+  if (!min || min <= 0) { showToast('กรุณากรอกจำนวนนาที'); return; }
+  const id = 'tmp_' + Date.now();
+  S.late.push({ id, memberId: S.currentMemberId, date: modalState.date, minutes: String(min) });
+  callServer('addLate', S.currentMemberId, modalState.date, min);
+  renderRecModal(); renderCalendar();
+  showToast('บันทึกมาสายแล้ว ⏰');
+}
+
+function updateLateRec(id) {
+  const min = parseInt(document.getElementById('f_late_min')?.value);
+  if (!min || min <= 0) { showToast('กรุณากรอกจำนวนนาที'); return; }
+  const idx = S.late.findIndex(l => l.id === id);
+  if (idx >= 0) S.late[idx].minutes = String(min);
+  callServer('updateLate', id, null, min);
+  modalState.editRec = null; renderRecModal(); renderCalendar();
+  showToast('อัปเดตมาสายแล้ว ✅');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SETTINGS MODAL
+// ═══════════════════════════════════════════════════════════
+function openSettings() {
+  renderSettingsBody();
+  document.getElementById('settingsModal').classList.remove('hidden');
+}
+
+function closeSettings(e) {
+  if (!e || e.target === document.getElementById('settingsModal'))
+    document.getElementById('settingsModal').classList.add('hidden');
+}
+
+function renderSettingsBody() {
+  const colors = ['#4A7DFF','#22C55E','#F97316','#EF4444','#8B5CF6','#EC4899','#14B8A6','#F59E0B'];
+  let html = `<div class="settings-section"><h4>👥 สมาชิกทีม</h4><div class="member-list" id="memberList">`;
+
+  S.allMembers.forEach((m, i) => {
+    const isActive = String(m.active).toUpperCase() === 'TRUE';
+    const color = colors[i % colors.length];
+    html += `<div class="member-item" id="mrow_${m.id}">
+      <div class="member-avatar" style="background:${color}">${m.name.charAt(0)}</div>
+      <input class="member-name-input" type="text" value="${m.name}" id="mname_${m.id}" placeholder="ชื่อสมาชิก">
+      <label class="toggle-switch" title="${isActive?'Active':'Inactive'}">
+        <input type="checkbox" id="mactive_${m.id}" ${isActive?'checked':''}>
+        <span class="slider"></span>
+      </label>
+    </div>`;
+  });
+
+  html += `</div>
+    <button class="btn btn-secondary" style="margin-top:10px;width:100%" onclick="addMemberRow()">➕ เพิ่มสมาชิก</button>
+  </div>
+
+  <div class="settings-section"><h4>📅 วันหยุดราชการ</h4>
+    <div style="max-height:220px;overflow-y:auto;border:1px solid var(--gray-mid);border-radius:8px;padding:8px 12px;margin-bottom:10px" id="holidayList">`;
+
+  S.holidays.sort((a,b)=>a.date.localeCompare(b.date)).forEach(h => {
+    html += `<div class="holiday-row">
+      <span class="holiday-date">${formatDateThai(h.date)}</span>
+      <span class="holiday-name">${h.name}</span>
+      <button class="holiday-del" onclick="deleteHolidayLocal('${h.date}')" title="ลบ">✕</button>
+    </div>`;
+  });
+
+  html += `</div>
+    <div style="display:flex;gap:8px">
+      <input type="date" id="new_hol_date" style="flex:1">
+      <input type="text" id="new_hol_name" placeholder="ชื่อวันหยุด" style="flex:2">
+      <button class="btn btn-primary" onclick="addHolidayLocal()">➕</button>
+    </div>
+  </div>`;
+
+  document.getElementById('settingsBody').innerHTML = html;
+}
+
+function addMemberRow() {
+  const list = document.getElementById('memberList');
+  const tempId = 'new_' + Date.now();
+  const div = document.createElement('div');
+  div.className = 'member-item';
+  div.id = `mrow_${tempId}`;
+  div.innerHTML = `<div class="member-avatar" style="background:#94A3B8">+</div>
+    <input class="member-name-input" type="text" id="mname_${tempId}" placeholder="ชื่อสมาชิกใหม่">
+    <label class="toggle-switch">
+      <input type="checkbox" id="mactive_${tempId}" checked>
+      <span class="slider"></span>
+    </label>`;
+  list.appendChild(div);
+}
+
+function deleteHolidayLocal(date) {
+  if (!confirm('ลบวันหยุดนี้?')) return;
+  S.holidays = S.holidays.filter(h => h.date !== date);
+  callServer('deleteHoliday', date);
+  renderSettingsBody(); renderCalendar();
+}
+
+function addHolidayLocal() {
+  const date = document.getElementById('new_hol_date').value;
+  const name = document.getElementById('new_hol_name').value.trim();
+  if (!date || !name) { showToast('กรุณากรอกวันและชื่อ'); return; }
+  if (S.holidays.some(h => h.date === date)) { showToast('วันนี้มีอยู่แล้ว'); return; }
+  S.holidays.push({ date, name });
+  callServer('addHoliday', date, name);
+  renderSettingsBody(); renderCalendar();
+  showToast('เพิ่มวันหยุดแล้ว 📅');
+}
+
+function saveSettings() {
+  const items = document.querySelectorAll('[id^="mrow_"]');
+  items.forEach(row => {
+    const rawId = row.id.replace('mrow_', '');
+    const name = document.getElementById(`mname_${rawId}`)?.value?.trim();
+    const active = document.getElementById(`mactive_${rawId}`)?.checked;
+    if (!name) return;
+
+    if (rawId.startsWith('new_')) {
+      callServer('addMember', name, res => {
+        if (res?.id) { S.allMembers.push({ id: res.id, name, active: active?'TRUE':'FALSE', createdAt: new Date().toISOString() }); }
+        syncMembersFromAll();
+      });
+    } else {
+      const existing = S.allMembers.find(m => String(m.id) === String(rawId));
+      if (existing && (existing.name !== name || String(existing.active).toUpperCase() !== (active?'TRUE':'FALSE'))) {
+        existing.name = name;
+        existing.active = active ? 'TRUE' : 'FALSE';
+        callServer('updateMember', rawId, name, active);
+      }
+    }
+  });
+
+  syncMembersFromAll();
+  closeSettings();
+  renderAll();
+  showToast('บันทึกการตั้งค่าแล้ว ✅');
+}
+
+function syncMembersFromAll() {
+  S.members = S.allMembers.filter(m => String(m.active).toUpperCase() === 'TRUE');
+  if (!S.members.find(m => String(m.id) === String(S.currentMemberId)) && S.members.length > 0) {
+    S.currentMemberId = S.members[0].id;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function selectMember(id) {
+  S.currentMemberId = String(id);
+  renderAll();
+}
+
+function changeMonth(delta) {
+  S.currentDate = new Date(S.currentDate.getFullYear(), S.currentDate.getMonth() + delta, 1);
+  renderCalendar();
+  document.getElementById('monthTitle').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function goToday() {
+  S.currentDate = new Date();
+  renderCalendar();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════════════════
+function formatDateThai(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return `${d.getDate()} ${THAI_MONTHS[d.getMonth()]} ${d.getFullYear()+543}`;
+}
+
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  API BRIDGE — ใช้ fetch() เรียก Apps Script REST API
+// ═══════════════════════════════════════════════════════════
+
+// ⬇️  วาง URL ของ Apps Script Web App ที่นี่ (หลัง Deploy)
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkZOmae7eQaMTXNQLCqg0UZlVKRlBpeKhnmLlBduM5vVwpUyvGReMXrrVmy4yI_0-X/exec';
+
+async function api(action, params = {}) {
+  if (!SCRIPT_URL || SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+    console.warn('SCRIPT_URL ยังไม่ได้ตั้งค่า — ทำงานใน demo mode');
+    return { success: true };
+  }
+  try {
+    const qs = new URLSearchParams({ action, ...params }).toString();
+    const res = await fetch(`${SCRIPT_URL}?${qs}`);
+    return await res.json();
+  } catch (err) {
+    console.error('API error:', action, err);
+    return { success: false, error: err.toString() };
+  }
+}
+
+// wrapper เดิม — ไม่ต้องเปลี่ยนที่อื่น
+function callServer(fnName, ...args) {
+  // map function name + positional args → named params object
+  const maps = {
+    addMember:      (['name'])        => ({ name: args[0] }),
+    updateMember:   ()                => ({ id: args[0], name: args[1], active: String(args[2]) }),
+    addTraining:    ()                => ({ memberId: args[0], date: args[1], status: args[2]||'confirmed', note: args[3]||'' }),
+    updateTraining: ()                => ({ id: args[0], date: args[1]||'', status: args[2]||'', note: args[3]||'' }),
+    deleteTraining: ()                => ({ id: args[0] }),
+    addLeave:       ()                => ({ memberId: args[0], date: args[1], type: args[2], note: args[3]||'', carriedOver: String(args[4]||false) }),
+    updateLeave:    ()                => ({ id: args[0], date: args[1]||'', type: args[2]||'', note: args[3]||'', carriedOver: String(args[4]||false) }),
+    deleteLeave:    ()                => ({ id: args[0] }),
+    addLate:        ()                => ({ memberId: args[0], date: args[1], minutes: args[2] }),
+    updateLate:     ()                => ({ id: args[0], date: args[1]||'', minutes: args[2] }),
+    deleteLate:     ()                => ({ id: args[0] }),
+    addHoliday:     ()                => ({ date: args[0], name: args[1] }),
+    deleteHoliday:  ()                => ({ date: args[0] }),
+  };
+
+  // หา callback (ถ้ามี)
+  const lastArg = args[args.length - 1];
+  const hasCb = typeof lastArg === 'function';
+  const cb = hasCb ? lastArg : () => {};
+
+  const paramsFn = maps[fnName];
+  if (!paramsFn) { console.warn('Unknown fn:', fnName); return; }
+  const namedParams = paramsFn();
+
+  api(fnName, namedParams).then(res => cb(res)).catch(err => console.error(fnName, err));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+async function init() {
+  // ── Demo / preview mode (SCRIPT_URL ยังไม่ได้ set) ──
+  if (!SCRIPT_URL || SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+    S.members = [
+      {id:'1',name:'ปัน',active:'TRUE'},{id:'2',name:'อาร์ม',active:'TRUE'},
+      {id:'3',name:'มุก',active:'TRUE'},{id:'4',name:'โย',active:'TRUE'},
+      {id:'5',name:'ป็อป',active:'TRUE'},{id:'6',name:'เป้',active:'TRUE'},
+      {id:'7',name:'แจม',active:'TRUE'},{id:'8',name:'นิ้ง',active:'TRUE'},
+    ];
+    S.allMembers = [...S.members];
+    S.holidays = [
+      {date:'2026-05-01',name:'วันแรงงานแห่งชาติ'},
+      {date:'2026-05-05',name:'วันฉัตรมงคล'},
+      {date:'2026-05-22',name:'วันวิสาขบูชา'},
+    ];
+    S.currentMemberId = '1';
+    document.getElementById('loading').classList.add('hidden');
+
+    // Banner แจ้งเตือนว่ายังไม่ได้ connect
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:#FEF9C3;border-bottom:1px solid #FDE68A;padding:8px 20px;text-align:center;font-size:13px;color:#92400E;';
+    banner.innerHTML = '⚠️ <strong>Demo mode</strong> — ข้อมูลจะไม่ถูกบันทึก กรุณาแก้ <code>SCRIPT_URL</code> ใน index.html ให้ชี้ไป Apps Script ของคุณ';
+    document.getElementById('app').prepend(banner);
+    renderAll();
+    return;
+  }
+
+  // ── Production mode ──
+  try {
+    const data = await api('getInitialData');
+    if (!data.success) throw new Error(data.error || 'Unknown error');
+    S.members    = data.members    || [];
+    S.allMembers = data.allMembers || [];
+    S.training   = data.training   || [];
+    S.leave      = data.leave      || [];
+    S.late       = data.late       || [];
+    S.holidays   = data.holidays   || [];
+    if (S.members.length > 0) S.currentMemberId = S.members[0].id;
+    document.getElementById('loading').classList.add('hidden');
+    renderAll();
+  } catch (err) {
+    document.getElementById('loading').innerHTML =
+      `<div style="text-align:center;padding:40px">
+        <div style="font-size:40px;margin-bottom:12px">❌</div>
+        <div style="font-weight:700;margin-bottom:8px">โหลดข้อมูลไม่สำเร็จ</div>
+        <div style="font-size:12px;color:#64748B;max-width:360px">${err.message}</div>
+        <button onclick="location.reload()" style="margin-top:16px;padding:8px 20px;border-radius:8px;border:none;background:#4A7DFF;color:#fff;cursor:pointer;font-weight:600">ลองใหม่</button>
+      </div>`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
