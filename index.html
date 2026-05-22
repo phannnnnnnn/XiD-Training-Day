@@ -228,7 +228,7 @@ input:checked + .slider:before { transform: translateX(16px); }
   </main>
 </div>
 
-<div id="loading"><div class="spinner"></div><span>กำลังโหลดข้อมูล…</span></div>
+<div id="loading"><div class="spinner"></div><span id="loadingMsg">กำลังโหลดข้อมูล…</span></div>
 <div id="toast"></div>
 
 <!-- Record Modal -->
@@ -937,9 +937,15 @@ async function api(action, params = {}) {
   }
   try {
     const qs = new URLSearchParams({ action, ...params }).toString();
-    const res = await fetch(`${SCRIPT_URL}?${qs}`);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 35000); // 35s timeout
+    const res = await fetch(`${SCRIPT_URL}?${qs}`, { signal: controller.signal });
+    clearTimeout(timer);
     return await res.json();
   } catch (err) {
+    if (err.name === 'AbortError') {
+      return { success: false, error: 'หมดเวลา (timeout) — กรุณาลองใหม่อีกครั้ง' };
+    }
     console.error('API error:', action, err);
     return { success: false, error: err.toString() };
   }
@@ -1007,8 +1013,15 @@ async function init() {
   }
 
   // ── Production mode ──
+  // แจ้งเตือนถ้าช้า (GAS cold start อาจใช้เวลา 10-30 วินาที)
+  const slowTimer = setTimeout(() => {
+    const msg = document.getElementById('loadingMsg');
+    if (msg) msg.innerHTML = 'กำลังโหลด… (ครั้งแรกอาจช้าหน่อย รอสักครู่นะครับ 🙏)';
+  }, 8000);
+
   try {
     const data = await api('getInitialData');
+    clearTimeout(slowTimer);
     if (!data.success) throw new Error(data.error || 'Unknown error');
     S.members    = data.members    || [];
     S.allMembers = data.allMembers || [];
